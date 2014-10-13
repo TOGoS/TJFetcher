@@ -337,11 +337,23 @@ public class Fetcher
 			} else if( "-debug".equals(args[i]) ) {
 				debug = true;
 			} else if( "-o".equals(args[i]) && i+1 < args.length ) {
-				outpath = args[++i];
+				if( outpath == null ) {
+					outpath = args[++i];
+				} else {
+					System.err.println("Error: Re-specification of output file from '"+outpath+"' to '"+args[++i]+"'");
+					anyUsageErrors = true;
+				}
 			} else if( "-h".equals(args[i]) || "-?".equals(args[i]) || "--help".equals(args[i]) ) {
 				System.out.println(USAGE);
-			} else if( !args[i].startsWith("-") && urn == null ) {
-				urn = args[i]; 
+			} else if( !args[i].startsWith("-") ) {
+				if( urn == null ) {
+					urn = args[i];
+				} else if( outpath == null ) {
+					outpath = args[i];
+				} else {
+					System.err.println("Error: Extraneous non-option argument: "+args[i]);
+					anyUsageErrors = true;
+				}
 			} else {
 				System.err.println("Error: Unrecognized argument: "+args[i]);
 				anyUsageErrors = true;
