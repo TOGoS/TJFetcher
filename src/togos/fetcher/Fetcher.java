@@ -1,5 +1,6 @@
 package togos.fetcher;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -180,6 +181,8 @@ public class Fetcher
 	
 	// TODO: Do without an instance altogether
 	
+	public boolean debug = false;
+	
 	/**
 	 * Error messages to be shown only if fetching fails for all repositories
 	 */
@@ -218,23 +221,51 @@ public class Fetcher
 		}
 	}
 	
+	protected void debug( String text ) {
+		if( debug ) System.err.println(text);
+	}
+	
+	protected void close( Closeable c ) {
+		if( c == null ) return;
+		try { c.close(); } catch( IOException e ) { /*Whatever*/ }
+	}
+	
 	protected boolean downloadFrom( String repoUrl, String urn, byte[] expectedHash, File outFile )
 		throws MalformedURLException
 	{
 		Exception connectionError = null;
 		URL fullUrl = new URL(repoUrl+urn);
+		
+		if( debug ) {
+			System.err.print("Attempting download from "+fullUrl+"...");
+			System.err.flush();
+		}
+		
+		File outDir = outFile.getParentFile();
+		if( outDir != null && !outDir.exists() ) outDir.mkdirs();
+		
+		InputStream is = null;
+		FileOutputStream os = null;
 		try {
 			URLConnection urlC = fullUrl.openConnection();
 			urlC.connect();
-			InputStream is = urlC.getInputStream();
-			FileOutputStream os = new FileOutputStream(outFile);
+			is = urlC.getInputStream();
+			try {
+				os = new FileOutputStream(outFile);
+			} catch( IOException e ) {
+				downloadErrors.add("Failed to open "+outFile+" for writing.");
+				return false;
+			}
 			byte[] hash = download( is, os, newSha1Digestor() );
 			if( !equal(hash, expectedHash) ) {
+				debug("Hash mismatch");
 				downloadErrors.add("Bad data from "+fullUrl+"; sha1:"+base32Encode(hash));
 				return false;
 			}
+			debug("Found!");
 			return true;
 		} catch( FileNotFoundException e ) {
+			debug("404d!");
 			// 404d!
 		} catch( NoRouteToHostException e ) {
 			connectionError = e;
@@ -246,9 +277,13 @@ public class Fetcher
 			connectionError = e;
 		} catch( IOException e ) {
 			connectionError = e;
+		} finally {
+			close(is);
+			close(os);
 		}
 		
 		if( connectionError != null ) {
+			debug("Connection error: "+connectionError.getMessage());
 			downloadErrors.add(connectionError.getClass().getName()+" when downloading "+fullUrl+": "+connectionError.getMessage());
 		}
 		
@@ -284,7 +319,7 @@ public class Fetcher
 		return EXIT_NOT_FOUND;
 	}
 	
-	protected static final String USAGE = "Usage: tjfetcher -repo <url> ... -o <outfile> <urn>";
+	protected static final String USAGE = "Usage: tjfetcher [-debug] -repo <url> ... -o <outfile> <urn>";
 	protected static final int EXIT_OKAY       = 0;
 	protected static final int EXIT_USER_ERROR = 1;
 	protected static final int EXIT_NOT_FOUND  = 2;
@@ -294,10 +329,13 @@ public class Fetcher
 		String urn = null;
 		String outpath = null;
 		ArrayList repoPrefixes = new ArrayList();
+		boolean debug = false;
 		boolean anyUsageErrors = false;
 		for( int i=0; i<args.length; ++i ) {
 			if( "-repo".equals(args[i]) && i+1 < args.length ) {
 				repoPrefixes.add(defuzzRemoteRepoPrefix(args[++i]));
+			} else if( "-debug".equals(args[i]) ) {
+				debug = true;
 			} else if( "-o".equals(args[i]) && i+1 < args.length ) {
 				outpath = args[++i];
 			} else if( "-h".equals(args[i]) || "-?".equals(args[i]) || "--help".equals(args[i]) ) {
@@ -327,6 +365,8 @@ public class Fetcher
 			System.exit(EXIT_USER_ERROR);
 		}
 		
-		System.exit(new Fetcher( urn, outpath, repoPrefixes ).run());
+		Fetcher f = new Fetcher( urn, outpath, repoPrefixes );
+		f.debug = debug;
+		System.exit(f.run());
 	}
 }
