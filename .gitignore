@@ -4,4 +4,6 @@
 .src.lst
 bin
 TJFetcher.jar
-util/TJBuilder.jar
+TJFetcher-fat.jar
+util/*.jar
+*.temp
