@@ -1,9 +1,11 @@
 package togos.fetcher;
 
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -333,7 +335,27 @@ public class Fetcher
 		boolean anyUsageErrors = false;
 		for( int i=0; i<args.length; ++i ) {
 			if( "-repo".equals(args[i]) && i+1 < args.length ) {
-				repoPrefixes.add(defuzzRemoteRepoPrefix(args[++i]));
+				String repoArg = args[++i];
+				if( repoArg.startsWith("@") ) {
+					File repoListFile = new File(repoArg.substring(1));
+					try {
+						BufferedReader r = new BufferedReader(new FileReader(repoListFile));
+						try {
+							String line;
+							while( (line = r.readLine()) != null ) {
+								line = line.trim();
+								if( line.isEmpty() || line.startsWith("#") ) continue;
+								repoPrefixes.add(defuzzRemoteRepoPrefix(line));
+							}
+						} finally {
+							r.close();
+						}
+					} catch( IOException e ) {
+						System.err.println("Error reading repository list file: "+repoListFile+": "+e.getMessage());
+					} 
+				} else {
+					repoPrefixes.add(defuzzRemoteRepoPrefix(repoArg));
+				}
 			} else if( "-debug".equals(args[i]) ) {
 				debug = true;
 			} else if( "-o".equals(args[i]) && i+1 < args.length ) {
