@@ -327,6 +327,17 @@ public class Fetcher
 	protected static final int EXIT_NOT_FOUND  = 2;
 	protected static final int EXIT_EXCEPTION  = 3;
 	
+	protected static String readSingleLine(File f) throws IOException {
+		BufferedReader r = new BufferedReader(new FileReader(f));
+		String line;
+		while( (line = r.readLine()) != null ) {
+			line = line.trim();
+			if( line.isEmpty() || line.startsWith("#") ) continue;
+			return line;
+		}
+		throw new IOException("No non-comment/non-empty lines found in "+f);
+	}
+
 	public static void main( String[] args ) {
 		String urn = null;
 		String outpath = null;
@@ -369,7 +380,16 @@ public class Fetcher
 				System.out.println(USAGE);
 			} else if( !args[i].startsWith("-") ) {
 				if( urn == null ) {
-					urn = args[i];
+					if( args[i].startsWith("@") ) {
+						try {
+							urn = readSingleLine(new File(args[i].substring(1)));
+						} catch( IOException e ) {
+							System.err.println("Error: "+e);
+							System.exit(EXIT_USER_ERROR);
+						}
+					} else {
+						urn = args[i];
+					}
 				} else if( outpath == null ) {
 					outpath = args[i];
 				} else {
