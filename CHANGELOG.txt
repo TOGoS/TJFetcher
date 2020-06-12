@@ -1,0 +1,9 @@
+Version: 1.2.0
+Date: 2020-06-11
+JAR: urn:bitprint:JEMHV2QEJX2AU3ETQXARUC4LFJ5PPQOR.JMO6UIDUQUCKETFZ76EQGODR7PTDNZ65QMDFHKA
+  Changes:
+    - Usage text includes version
+    - Added -nc (no-clobber; i.e. don't overwrite files if they exist) option
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0 - first version with a version number
+JAR: urn:bitprint:D4ALDTELCA2E2UKWZN2TLBVCF5TJTA27.UEP5ZJ5HANVZKJJCKT46JLQ2H6T6BGM3VLK5USQ

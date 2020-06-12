@@ -9,8 +9,8 @@ default: TJFetcher.jar.urn
 clean:
 	rm -rf bin TJFetcher.jar .src.lst
 
-util/%.jar: util/%.jar.urn TJFetcher-fat.jar 
-	${fetch} -o "$@" @"$<"
+util/%.jar: util/%.jar.urn | TJFetcher-fat.jar
+	${fetch} -nc -o "$@" @"$<"
 
 TJFetcher-fat.jar: ${src_files}
 	rm -rf bin "$@"

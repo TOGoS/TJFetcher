@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 
 /**
  * Requrements:
- * - Single class file
+ * - Single class file (to minimize JAR size)
  * - Support fetching bu sha1: or bitprint: URNs
  * - Only need to support fetching a single file at a time
  * - Ability to try fetching from multiple repositories
@@ -43,6 +43,9 @@ import java.util.regex.Pattern;
  */
 public class Fetcher
 {
+	public static final String APPNAME = "TJFetcher";
+	public static final String VERSION = "1.2.0";
+	
 	protected static final String UNPOSSIBLE = "This is unpossible!";
 	
 	// Base32
@@ -184,6 +187,7 @@ public class Fetcher
 	// TODO: Do without an instance altogether
 	
 	public boolean debug = false;
+	public boolean allowClobber = false;
 	
 	/**
 	 * Error messages to be shown only if fetching fails for all repositories
@@ -294,6 +298,7 @@ public class Fetcher
 	
 	public int run() {
 		File destFile = new File(destPath);
+		if( !allowClobber && destFile.exists() ) return EXIT_OKAY;
 		File destDir = destFile.getParentFile();
 		Random r = new Random();
 		String tempFileName = "."+sourceUrn.hashCode()+"-"+System.currentTimeMillis()+"-"+r.nextInt(Integer.MAX_VALUE)+".temp";
@@ -321,7 +326,8 @@ public class Fetcher
 		return EXIT_NOT_FOUND;
 	}
 	
-	protected static final String USAGE = "Usage: tjfetcher [-debug] -repo <url> ... -o <outfile> <urn>";
+	protected static final String USAGE =
+		"Usage: tjfetcher [-debug] [-nc] -repo <url> ... -o <outfile> <urn>\n";
 	protected static final int EXIT_OKAY       = 0;
 	protected static final int EXIT_USER_ERROR = 1;
 	protected static final int EXIT_NOT_FOUND  = 2;
@@ -342,6 +348,7 @@ public class Fetcher
 		String urn = null;
 		String outpath = null;
 		ArrayList repoPrefixes = new ArrayList();
+		boolean allowClobber = true;
 		boolean debug = false;
 		boolean anyUsageErrors = false;
 		for( int i=0; i<args.length; ++i ) {
@@ -369,6 +376,8 @@ public class Fetcher
 				}
 			} else if( "-debug".equals(args[i]) ) {
 				debug = true;
+			} else if( "-nc".equals(args[i]) ) {
+				allowClobber = false;
 			} else if( "-o".equals(args[i]) && i+1 < args.length ) {
 				if( outpath == null ) {
 					outpath = args[++i];
@@ -377,7 +386,9 @@ public class Fetcher
 					anyUsageErrors = true;
 				}
 			} else if( "-h".equals(args[i]) || "-?".equals(args[i]) || "--help".equals(args[i]) ) {
-				System.out.println(USAGE);
+				System.out.println(APPNAME+" "+VERSION);
+				System.out.print(USAGE);
+				return;
 			} else if( !args[i].startsWith("-") ) {
 				if( urn == null ) {
 					if( args[i].startsWith("@") ) {
@@ -421,6 +432,7 @@ public class Fetcher
 		
 		Fetcher f = new Fetcher( urn, outpath, repoPrefixes );
 		f.debug = debug;
+		f.allowClobber = allowClobber;
 		System.exit(f.run());
 	}
 }
