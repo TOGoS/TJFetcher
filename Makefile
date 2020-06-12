@@ -37,6 +37,6 @@ run-tests: TJFetcher.jar
 	java -jar TJFetcher.jar -repo @.ccouch-repos.lst urn:bitprint:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY.UZC5SD3FMHI5LMPEONE2MVXTG54SYLT3PHB7JTA -o temp/cool.txt
 	rm -f temp/cool.txt
 	java -jar TJFetcher.jar -repo @.ccouch-repos.lst urn:sha1:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY -o temp/cool.txt
-	echo @.ccouch-repos.lst > .recursive-repo-list.lst
+	echo @.ccouch-repos.lst > temp/.recursive-repo-list.lst
 	rm -f temp/cool.txt
-	java -jar TJFetcher.jar -repo @.recursive-repo-list.lst urn:sha1:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY -o temp/cool.txt
+	java -jar TJFetcher.jar -repo @temp/.recursive-repo-list.lst urn:sha1:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY -o temp/cool.txt
