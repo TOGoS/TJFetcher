@@ -1,3 +1,10 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.3.0
+Date: ???
+  Changes:
+    - Output file must be indicated with -o, no longer as a second non-flag argument
+    - Refactoring to ease merging with v2
+---------------------------------------------------------------------------------------------------
 Version: 1.2.0
 Date: 2020-06-11
 JAR: urn:bitprint:JEMHV2QEJX2AU3ETQXARUC4LFJ5PPQOR.JMO6UIDUQUCKETFZ76EQGODR7PTDNZ65QMDFHKA

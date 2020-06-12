@@ -193,14 +193,7 @@ public class Fetcher
 	 * Error messages to be shown only if fetching fails for all repositories
 	 */
 	protected final ArrayList downloadErrors = new ArrayList();
-	protected final ArrayList repoPrefixes;
-	protected final String sourceUrn, destPath;
-	
-	public Fetcher( String urn, String outpath, ArrayList repoPrefixes ) {
-		this.repoPrefixes = repoPrefixes;
-		this.sourceUrn = urn;
-		this.destPath = outpath;
-	}
+	protected final ArrayList repoPrefixes = new ArrayList();
 	
 	protected byte[] download( InputStream is, OutputStream os, MessageDigest digestor )
 		throws IOException
@@ -296,8 +289,7 @@ public class Fetcher
 		return false;
 	}
 	
-	public int run() {
-		File destFile = new File(destPath);
+	public int fetch(String sourceUrn, File destFile) {
 		if( !allowClobber && destFile.exists() ) return EXIT_OKAY;
 		File destDir = destFile.getParentFile();
 		Random r = new Random();
@@ -327,7 +319,14 @@ public class Fetcher
 	}
 	
 	protected static final String USAGE =
-		"Usage: tjfetcher [-debug] [-nc] -repo <url> ... -o <outfile> <urn>\n";
+		"To fetch a file: tjfetcher <general options> -o <outfile>\n" +
+		"\n" +
+		"General options:\n"+
+		"  -debug               ; be very verbose\n" +
+		"  -nc                  ; don't overwrite existing files\n" +
+		"  -repo <url>          ; indicate remote repository to fetch from\n" +
+		"  -repo @<url>         ; indicate remote repository to fetch from\n" +
+		"";
 	protected static final int EXIT_OKAY       = 0;
 	protected static final int EXIT_USER_ERROR = 1;
 	protected static final int EXIT_NOT_FOUND  = 2;
@@ -344,12 +343,10 @@ public class Fetcher
 		throw new IOException("No non-comment/non-empty lines found in "+f);
 	}
 
-	public static void main( String[] args ) {
+	public int run( String[] args ) {
 		String urn = null;
 		String outpath = null;
 		ArrayList repoPrefixes = new ArrayList();
-		boolean allowClobber = true;
-		boolean debug = false;
 		boolean anyUsageErrors = false;
 		for( int i=0; i<args.length; ++i ) {
 			if( "-repo".equals(args[i]) && i+1 < args.length ) {
@@ -387,8 +384,9 @@ public class Fetcher
 				}
 			} else if( "-h".equals(args[i]) || "-?".equals(args[i]) || "--help".equals(args[i]) ) {
 				System.out.println(APPNAME+" "+VERSION);
+				System.out.println();
 				System.out.print(USAGE);
-				return;
+				return EXIT_OKAY;
 			} else if( !args[i].startsWith("-") ) {
 				if( urn == null ) {
 					if( args[i].startsWith("@") ) {
@@ -396,13 +394,11 @@ public class Fetcher
 							urn = readSingleLine(new File(args[i].substring(1)));
 						} catch( IOException e ) {
 							System.err.println("Error: "+e);
-							System.exit(EXIT_USER_ERROR);
+							return EXIT_EXCEPTION;
 						}
 					} else {
 						urn = args[i];
 					}
-				} else if( outpath == null ) {
-					outpath = args[i];
 				} else {
 					System.err.println("Error: Extraneous non-option argument: "+args[i]);
 					anyUsageErrors = true;
@@ -427,12 +423,13 @@ public class Fetcher
 		if( anyUsageErrors ) {
 			System.err.println();
 			System.err.println(USAGE);
-			System.exit(EXIT_USER_ERROR);
+			return EXIT_USER_ERROR;
 		}
 		
-		Fetcher f = new Fetcher( urn, outpath, repoPrefixes );
-		f.debug = debug;
-		f.allowClobber = allowClobber;
-		System.exit(f.run());
+		return fetch(urn, new File(outpath));
+	}
+	
+	public static void main(String[] args) {
+		System.exit(new Fetcher().run(args));
 	}
 }
