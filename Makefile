@@ -1,13 +1,14 @@
 src_files = $(shell find src)
 fetch = java -jar TJFetcher-fat.jar -repo @.ccouch-repos.lst
 
+.PHONY: default
 default: TJFetcher.jar.urn
 
-.PHONY: default clean .FORCE
+.PHONY: clean
 .DELETE_ON_ERROR:
 
 clean:
-	rm -rf bin TJFetcher.jar .src.lst
+	rm -rf bin TJFetcher.jar .src.lst temp
 
 util/%.jar: util/%.jar.urn | TJFetcher-fat.jar
 	${fetch} -nc -o "$@" @"$<"
@@ -28,3 +29,14 @@ TJFetcher.jar: TJFetcher-fat.jar util/ProGuard.jar util/rt.jar
 
 TJFetcher.jar.urn: TJFetcher.jar util/TJBuilder.jar
 	java -jar util/TJBuilder.jar id "$<" >"$@"
+
+.PHONY: run-tests
+run-tests: TJFetcher.jar
+	mkdir -p temp
+	rm -f temp/cool.txt
+	java -jar TJFetcher.jar -repo @.ccouch-repos.lst urn:bitprint:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY.UZC5SD3FMHI5LMPEONE2MVXTG54SYLT3PHB7JTA -o temp/cool.txt
+	rm -f temp/cool.txt
+	java -jar TJFetcher.jar -repo @.ccouch-repos.lst urn:sha1:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY -o temp/cool.txt
+	echo @.ccouch-repos.lst > .recursive-repo-list.lst
+	rm -f temp/cool.txt
+	java -jar TJFetcher.jar -repo @.recursive-repo-list.lst urn:sha1:4AB4UUN3FC5XFA6EURQPQH5YHTU4KBFY -o temp/cool.txt

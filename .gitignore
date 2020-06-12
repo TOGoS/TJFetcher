@@ -1,3 +1,4 @@
+.idea
 .classpath
 .project
 .settings
@@ -5,5 +6,6 @@
 bin
 TJFetcher.jar
 TJFetcher-fat.jar
+temp
 util/*.jar
 *.temp

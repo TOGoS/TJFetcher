@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 public class Fetcher
 {
 	public static final String APPNAME = "TJFetcher";
-	public static final String VERSION = "1.2.0";
+	public static final String VERSION = "1.3.0";
 	
 	protected static final String UNPOSSIBLE = "This is unpossible!";
 	
@@ -323,53 +323,87 @@ public class Fetcher
 		"\n" +
 		"General options:\n"+
 		"  -debug               ; be very verbose\n" +
-		"  -nc                  ; don't overwrite existing files\n" +
-		"  -repo <url>          ; indicate remote repository to fetch from\n" +
-		"  -repo @<url>         ; indicate remote repository to fetch from\n" +
+		"  -nc                  ; ('no clobber') don't overwrite existing files\n" +
+		"  -repo <url>          ; indicate a remote repository from which to fetch\n" +
+		"  -repo @<url>         ; indicate a file listing remote repositories from which to fetch\n" +
 		"";
 	protected static final int EXIT_OKAY       = 0;
 	protected static final int EXIT_USER_ERROR = 1;
 	protected static final int EXIT_NOT_FOUND  = 2;
 	protected static final int EXIT_EXCEPTION  = 3;
 	
-	protected static String readSingleLine(File f) throws IOException {
+	protected static void readList(File f, ArrayList<String> into, int transform) throws IOException {
 		BufferedReader r = new BufferedReader(new FileReader(f));
 		String line;
 		while( (line = r.readLine()) != null ) {
 			line = line.trim();
 			if( line.isEmpty() || line.startsWith("#") ) continue;
-			return line;
+			addToList(line, into, transform);
 		}
-		throw new IOException("No non-comment/non-empty lines found in "+f);
+	}
+	
+	// Using a switch instead of an object to avoid extra class files!
+	
+	static final int XF_IDENTITY = 0x40100;
+	static final int XF_DEFUZZ_REMOTE_PREFIX = 0x40101;
+	
+	static String applyTextTransform(String value, int transform) {
+		switch( transform ) {
+		case XF_IDENTITY: return value;
+		case XF_DEFUZZ_REMOTE_PREFIX: return defuzzRemoteRepoPrefix(value);
+		default: throw new RuntimeException("Invalid text transform ID: "+transform);
+		}
+	}
+	
+	protected static void addToList(String value, ArrayList<String> into, int transform) throws IOException {
+		if( value.startsWith("@") ) {
+			readList(new File(value.substring(1)), into, transform);
+		} else {
+			into.add(applyTextTransform(value, transform));
+		}
+	}
+	
+	/** Assumes some errors have been printed.
+	 * Adds a blank line and the usage text and returns EXIT_USER_ERROR */
+	protected int exitDueToUsageError() {
+		System.err.println();
+		System.err.println(USAGE);
+		return EXIT_USER_ERROR;
+	}
+	
+	protected int doFetchCmd( ArrayList<String> args, String outpath ) {
+		boolean anyUsageErrors = false;
+		if( args.size() == 0 ) {
+			System.err.println("Error: No URN specified");
+			anyUsageErrors = true;
+		}
+		if( args.size() > 1 ) {
+			System.err.println("Error: Too many URNs specified ("+args.get(0)+", "+args.get(1)+"...)");
+			anyUsageErrors = true;
+		}
+		if( outpath == null ) {
+			System.err.println("Error: No output file specified");
+			anyUsageErrors = true;
+		}
+		if( repoPrefixes.size() == 0 ) {
+			System.err.println("Error: No repositories specified");
+			anyUsageErrors = true;
+		}
+		if( anyUsageErrors ) return exitDueToUsageError();
+		
+		return fetch(args.get(0), new File(outpath));
 	}
 
-	public int run( String[] args ) {
-		String urn = null;
+	public int doCmd( String[] args ) {
+		ArrayList<String> bareArgs = new ArrayList<String>();
 		String outpath = null;
-		ArrayList repoPrefixes = new ArrayList();
 		boolean anyUsageErrors = false;
 		for( int i=0; i<args.length; ++i ) {
 			if( "-repo".equals(args[i]) && i+1 < args.length ) {
-				String repoArg = args[++i];
-				if( repoArg.startsWith("@") ) {
-					File repoListFile = new File(repoArg.substring(1));
-					try {
-						BufferedReader r = new BufferedReader(new FileReader(repoListFile));
-						try {
-							String line;
-							while( (line = r.readLine()) != null ) {
-								line = line.trim();
-								if( line.isEmpty() || line.startsWith("#") ) continue;
-								repoPrefixes.add(defuzzRemoteRepoPrefix(line));
-							}
-						} finally {
-							r.close();
-						}
-					} catch( IOException e ) {
-						System.err.println("Error reading repository list file: "+repoListFile+": "+e.getMessage());
-					} 
-				} else {
-					repoPrefixes.add(defuzzRemoteRepoPrefix(repoArg));
+				try {
+					addToList(args[++i], repoPrefixes, XF_DEFUZZ_REMOTE_PREFIX);
+				} catch( IOException e ) {
+					System.err.println("Error reading repository list file: "+e.getMessage());
 				}
 			} else if( "-debug".equals(args[i]) ) {
 				debug = true;
@@ -388,48 +422,22 @@ public class Fetcher
 				System.out.print(USAGE);
 				return EXIT_OKAY;
 			} else if( !args[i].startsWith("-") ) {
-				if( urn == null ) {
-					if( args[i].startsWith("@") ) {
-						try {
-							urn = readSingleLine(new File(args[i].substring(1)));
-						} catch( IOException e ) {
-							System.err.println("Error: "+e);
-							return EXIT_EXCEPTION;
-						}
-					} else {
-						urn = args[i];
-					}
-				} else {
-					System.err.println("Error: Extraneous non-option argument: "+args[i]);
-					anyUsageErrors = true;
+				try {
+					addToList(args[i], bareArgs, XF_IDENTITY);
+				} catch( IOException e ) {
+					System.err.println("Error: "+e);
+					return EXIT_EXCEPTION;
 				}
 			} else {
 				System.err.println("Error: Unrecognized argument: "+args[i]);
 				anyUsageErrors = true;
 			}
 		}
-		if( urn == null ) {
-			System.err.println("Error: No URN specified");
-			anyUsageErrors = true;
-		}
-		if( outpath == null ) {
-			System.err.println("Error: No output file specified");
-			anyUsageErrors = true;
-		}
-		if( repoPrefixes.size() == 0 ) {
-			System.err.println("Error: No repositories specified");
-			anyUsageErrors = true;
-		}
-		if( anyUsageErrors ) {
-			System.err.println();
-			System.err.println(USAGE);
-			return EXIT_USER_ERROR;
-		}
-		
-		return fetch(urn, new File(outpath));
+		if (anyUsageErrors) return exitDueToUsageError();
+		return doFetchCmd(bareArgs, outpath);
 	}
 	
 	public static void main(String[] args) {
-		System.exit(new Fetcher().run(args));
+		System.exit(new Fetcher().doCmd(args));
 	}
 }
