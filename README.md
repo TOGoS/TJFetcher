@@ -27,3 +27,6 @@ Options:
 - ```-repo @<file>``` - Add repositories listed in the named file
   to the repository list.
 - ```-debug``` - Be verbose
+
+For example usage, see [Makefile](./Makefile), which uses TJFetcher
+to fetch some utilities in order to compress itself.
