@@ -15,3 +15,6 @@ JAR: urn:bitprint:JEMHV2QEJX2AU3ETQXARUC4LFJ5PPQOR.JMO6UIDUQUCKETFZ76EQGODR7PTDN
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.0 - first version with a version number
 JAR: urn:bitprint:D4ALDTELCA2E2UKWZN2TLBVCF5TJTA27.UEP5ZJ5HANVZKJJCKT46JLQ2H6T6BGM3VLK5USQ
+---------------------------------------------------------------------------------------------------
+Version: ? - The version used by PicGrid as of 2014-10-13
+JAR: urn:bitprint:VGPGDNBIUQSBUUTYNCRRIYMYKPUKLNVZ.JSJMLM6QVKLBCUNF2XTOQXJFSWLBUIKDQKWB43Q
